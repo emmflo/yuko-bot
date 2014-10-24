@@ -6,8 +6,11 @@ require 'htmlentities'
 require 'io/console'
 
 require './lib/yuko'
+require './lib/myanimelist-x'
 
 load './config.rb'
+
+Yuko.conf.prompt_mal_config unless Yuko.conf.mal_configured?
 
 begin
   Yuko.conf.check
@@ -16,33 +19,19 @@ rescue Yuko::ConfError => e
   exit
 end
 
-if Yuko.conf.mal.username.nil?
-  print 'MyAnimeList username: '
-  Yuko.conf.mal.username = gets.chomp
-end
-if Yuko.conf.mal.password.nil?
-  print 'MyAnimeList password: '
-  Yuko.conf.mal.password = STDIN.noecho(&:gets).chomp
-  print "\n"
-end
-
-begin
-  response = RestClient::Request.new(
-    method:       :get,
-    url:          "http://myanimelist.net/api/account/verify_credentials.xml",
-    user:         Yuko.conf.mal.username,
-    password:     Yuko.conf.mal.password,
-    content_type: :xml
-  ).execute
-rescue RestClient::Unauthorized => e
-  puts 'Error: Incorrect login or password (mal)'
-  exit
-end
 
 MyAnimeList.configure do |config|
   config.username = Yuko.conf.mal.username
   config.password = Yuko.conf.mal.password
 end
+
+begin
+  MyAnimeList.verify_credentials
+rescue RestClient::Unauthorized => e
+  puts 'Error: Incorrect login or password (mal)'
+  exit
+end
+
 
 irc = IRCSocket.new(Yuko.conf.irc.server)
 irc.connect
@@ -71,35 +60,26 @@ if irc.connected?
     if match_data != nil
       chan = match_data[:chan]
       msg  = match_data[:msg]
-      cmd  = msg.split /[[:blank:]]/, 2
+      cmd  = msg.split /\s/, 2
 
       if cmd.size > 1
-        if cmd[0] == '!anime'
-          response = MyAnimeList.search_anime cmd[1]
-
-          if response.any?
+        if cmd[0] == '!anime' || cmd[0] == '!manga'
+          search_type = cmd[0][1..-1]
+          results = search_type == 'anime' ? MyAnimeList.search_anime(cmd[1]) : MyAnimeList.search_manga(cmd[1])
+          
+          if results.any?
             irc.privmsg chan, "Résultats pour \"#{cmd[1]}\""
-            response.sort! {|r1, r2| r2['score'].to_f <=> r1['score'].to_f }
-            response.take(5).each {|r| irc.privmsg chan, "#{html.decode r['title']} →\x032 http://myanimelist.net/anime/#{r['id']}" }
+            results.sort! {|entry1, entry2| entry2['score'].to_f <=> entry1['score'].to_f }
+
+            results.take(5).each do |entry|
+              title = html.decode entry['title']
+              url   = "http://myanimelist.net/#{search_type}/#{entry['id']}"
+              irc.privmsg chan, "#{title} →\x032 #{url}"
+            end
           else
             irc.privmsg chan, "Aww~ la recherche pour \"#{cmd[1]}\" n'a rien donné é_è"
           end
         end
-
-
-
-        if cmd[0] == '!manga'
-          response = MyAnimeList.search_manga cmd[1]
-
-          if response.any?
-            irc.privmsg chan, "Résultats pour \"#{cmd[1]}\""
-            response.sort! {|r1, r2| r2['score'].to_f <=> r1['score'].to_f }
-            response.take(5).each {|r| irc.privmsg chan, "#{html.decode r['title']} →\x032 http://myanimelist.net/manga/#{r['id']}" }
-          else
-            irc.privmsg chan, "Aww~ la recherche pour \"#{cmd[1]}\" n'a rien donné é_è"
-          end
-        end
-
 
       end
 

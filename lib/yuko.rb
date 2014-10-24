@@ -1,3 +1,4 @@
+# Handles all the configuration things.
 module Yuko
 
   class << self
@@ -25,10 +26,27 @@ module Yuko
       errors << 'Invalid server   (irc)' unless @irc.server.is_a? String
       errors << 'Invalid channel  (irc)' unless @irc.channel.is_a? String
       errors << 'Invalid nickname (irc)' unless @irc.nickname.is_a? String
-      errors << 'Invalid username (mal)' unless @mal.username.is_a?(String) || @mal.username.nil?
-      errors << 'Invalid password (mal)' unless @mal.password.is_a?(String) || @mal.password.nil?
+      errors << 'Invalid username (mal)' unless @mal.username.is_a? String
+      errors << 'Invalid password (mal)' unless @mal.password.is_a? String
       raise ConfError, errors if errors.any?
     end
+
+    def mal_configured?
+      !@mal.username.nil? && !@mal.password.nil?
+    end
+
+    def prompt_mal_config
+      if @mal.username.nil?
+        print 'MyAnimeList username: '
+        @mal.username = gets.chomp
+      end
+      if @mal.password.nil?
+        print 'MyAnimeList password: '
+        @mal.password = STDIN.noecho(&:gets).chomp
+        print "\n"
+      end
+    end
+
   end
 
   class IrcConf
@@ -39,6 +57,5 @@ module Yuko
     self.conf ||= GlobalConf.new
     yield(conf)
   end
-
 
 end
