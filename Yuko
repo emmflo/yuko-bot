@@ -4,6 +4,7 @@ require 'irc-socket'
 require 'myanimelist'
 require 'htmlentities'
 require 'io/console'
+require 'open-uri'
 
 $:.unshift File.dirname(__FILE__)
 require 'lib/yuko'
@@ -56,13 +57,14 @@ if irc.connected?
       irc.pong line.split[1]
     end
 
-    match_data = line.match /^.+PRIVMSG[[:blank:]]+(?<chan>[^[[:blank:]]]+).*:(?<msg>.*)$/
+    match_data = line.match /^.+PRIVMSG[[:blank:]]+(?<chan>[^[[:blank:]]]+)[[:blank:]]+:(?<msg>.*)$/
 
     if match_data != nil
       chan     = match_data[:chan]
       msg      = match_data[:msg]
       command  = msg.match /^!(?<name>[^[[:blank:]]]+)[[:blank:]]+(?<params>.*)$/
-      
+      urls     = msg.scan /https?:\/\/[^[[:blank:]]]+/
+
       if command
         if command[:name] == 'anime' || command[:name] == 'manga'
           search_type = command[:name]
@@ -81,8 +83,18 @@ if irc.connected?
             irc.privmsg chan, "Aww~ la recherche pour \"#{command[:params]}\" n'a rien donné é_è"
           end
         end
-
       end
+
+      if urls.any?
+        urls.take(3).each do |url|
+          begin
+            open(url).read =~ /<title>(.*)<\/title>/
+            irc.privmsg chan, $1 if $1
+          rescue SocketError
+          end
+        end
+      end
+
 
     end
 
