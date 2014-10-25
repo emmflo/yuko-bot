@@ -5,10 +5,11 @@ require 'myanimelist'
 require 'htmlentities'
 require 'io/console'
 
-require './lib/yuko'
-require './lib/myanimelist-x'
+$:.unshift File.dirname(__FILE__)
+require 'lib/yuko'
+require 'lib/myanimelist-x'
 
-load './config.rb'
+load 'config.rb'
 
 Yuko.conf.prompt_mal_config unless Yuko.conf.mal_configured?
 
@@ -48,7 +49,7 @@ if irc.connected?
 
     if line.split[1] == '376'
       irc.join    Yuko.conf.irc.channel
-      irc.privmsg Yuko.conf.irc.channel, 'Yuko à votre service!'
+      irc.privmsg Yuko.conf.irc.channel, Yuko.conf.irc.greeting unless Yuko.conf.irc.greeting.nil?
     end
 
     if line.split[0] == 'PING'
@@ -58,17 +59,17 @@ if irc.connected?
     match_data = line.match /^.+PRIVMSG[[:blank:]]+(?<chan>[^[[:blank:]]]+).*:(?<msg>.*)$/
 
     if match_data != nil
-      chan = match_data[:chan]
-      msg  = match_data[:msg]
-      cmd  = msg.split /\s/, 2
+      chan     = match_data[:chan]
+      msg      = match_data[:msg]
+      command  = msg.match /^!(?<name>[^[[:blank:]]]+)[[:blank:]]+(?<params>.*)$/
+      
+      if command
+        if command[:name] == 'anime' || command[:name] == 'manga'
+          search_type = command[:name]
+          results = search_type == 'anime' ? MyAnimeList.search_anime(command[:params]) : MyAnimeList.search_manga(command[:params])
 
-      if cmd.size > 1
-        if cmd[0] == '!anime' || cmd[0] == '!manga'
-          search_type = cmd[0][1..-1]
-          results = search_type == 'anime' ? MyAnimeList.search_anime(cmd[1]) : MyAnimeList.search_manga(cmd[1])
-          
           if results.any?
-            irc.privmsg chan, "Résultats pour \"#{cmd[1]}\""
+            irc.privmsg chan, "Résultats pour \"#{command[:params]}\""
             results.sort! {|entry1, entry2| entry2['score'].to_f <=> entry1['score'].to_f }
 
             results.take(5).each do |entry|
@@ -77,7 +78,7 @@ if irc.connected?
               irc.privmsg chan, "#{title} →\x032 #{url}"
             end
           else
-            irc.privmsg chan, "Aww~ la recherche pour \"#{cmd[1]}\" n'a rien donné é_è"
+            irc.privmsg chan, "Aww~ la recherche pour \"#{command[:params]}\" n'a rien donné é_è"
           end
         end
 
