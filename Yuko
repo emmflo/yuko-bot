@@ -4,7 +4,8 @@ require 'irc-socket'
 require 'myanimelist'
 require 'htmlentities'
 require 'io/console'
-require 'open-uri'
+# require 'open-uri'
+require 'link_thumbnailer'
 
 $:.unshift File.dirname(__FILE__)
 require 'lib/yuko'
@@ -87,11 +88,15 @@ if irc.connected?
 
       if urls.any?
         urls.take(3).each do |url|
-          begin
-            open(url).read =~ /<title>(.*)<\/title>/
-            irc.privmsg chan, html.decode($1) if $1
-          rescue SocketError
-          end
+          # begin
+          #   open(url).read =~ /<title>(.*)<\/title>/
+          #   irc.privmsg chan, html.decode($1) if $1
+          # rescue StandardError#SocketError
+          #   irc.privmsg chan, e.message
+          # end
+          object = LinkThumbnailer.generate url
+          irc.privmsg chan, object.title
+
         end
       end
 
