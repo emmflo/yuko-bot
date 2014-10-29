@@ -10,6 +10,7 @@ require 'link_thumbnailer'
 $:.unshift File.dirname(__FILE__)
 require 'lib/yuko'
 require 'lib/myanimelist-x'
+require 'lib/message'
 
 load 'config.rb'
 
@@ -50,43 +51,47 @@ if irc.connected?
   html = HTMLEntities.new
 
   while line = irc.read
-    line = line.force_encoding('UTF-8')
-    puts "Received: #{line}"
+    message = Message.new(line)
+    puts "Received: #{message.raw}"
 
-    if line.split[1] == '376'
-      irc.join    Yuko.conf.irc.channel
+    if message.command == '376'
+      irc.join Yuko.conf.irc.channel
       irc.privmsg Yuko.conf.irc.channel, Yuko.conf.irc.greeting unless Yuko.conf.irc.greeting.nil?
     end
 
-    if line.split[0] == 'PING'
-      irc.pong line.split[1]
+    if message.command == 'PING'
+      irc.pong command.params[0]
     end
 
-    match_data = line.match /^.+PRIVMSG[[:blank:]]+(?<chan>[^[[:blank:]]]+)[[:blank:]]+:(?<msg>.*)$/
+    if message.command == 'PRIVMSG'
+      request = message.trailing.match /^!(?<name>[^[[:blank:]]]+)([[:blank:]]+(?<params>.*))?$/
+      urls    = message.trailing.scan /https?:\/\/[^[[:blank:]]]+/
 
-    if match_data != nil
-      chan     = match_data[:chan]
-      msg      = match_data[:msg]
-      command  = msg.match /^!(?<name>[^[[:blank:]]]+)[[:blank:]]+(?<params>.*)$/
-      urls     = msg.scan /https?:\/\/[^[[:blank:]]]+/
-
-      if command
-        if command[:name] == 'anime' || command[:name] == 'manga'
-          search_type = command[:name]
-          results = search_type == 'anime' ? MyAnimeList.search_anime(command[:params]) : MyAnimeList.search_manga(command[:params])
+      if request
+        if (request[:name] == 'anime' || request[:name] == 'manga') && !request[:params].nil?
+          search_type = request[:name]
+          results     = search_type == 'anime' ? MyAnimeList.search_anime(request[:params]) : MyAnimeList.search_manga(request[:params])
 
           if results.any?
-            irc.privmsg chan, "Résultats pour \"#{command[:params]}\""
-            results.sort! {|entry1, entry2| entry2['score'].to_f <=> entry1['score'].to_f }
+            irc.privmsg message.channel, "Résultats pour \"#{request[:params]}\""
 
+            results.sort! {|entry1, entry2| entry2['score'].to_f <=> entry1['score'].to_f }
             results.take(5).each do |entry|
               title = html.decode entry['title']
               url   = "http://myanimelist.net/#{search_type}/#{entry['id']}"
-              irc.privmsg chan, "#{title} →\x032 #{url}"
+              irc.privmsg message.channel, "#{title} →\x032 #{url}"
             end
           else
-            irc.privmsg chan, "Aww~ la recherche pour \"#{command[:params]}\" n'a rien donné é_è"
+            irc.privmsg message.channel, "Aww~ la recherche pour \"#{request[:params]}\" n'a rien donné é_è"
           end
+        end
+
+        if request[:name] == 'Titof'
+          irc.privmsg message.channel, "Nyaa~ onii-chan yameteeee... Touche pas mon ~/vendor gyaaaaaaah~!"
+        end
+
+        if request[:name] == 'Holo' || request[:name] == "shingekinoslg"
+          irc.privmsg message.channel, "https://www.listenonrepeat.com/?v=8PN7kNWV06w"
         end
       end
 
@@ -94,7 +99,7 @@ if irc.connected?
         urls.take(3).each do |url|
           begin
             object = LinkThumbnailer.generate url
-            irc.privmsg chan, object.title
+            irc.privmsg message.channel, object.title
           rescue StandardError
           end
         end
