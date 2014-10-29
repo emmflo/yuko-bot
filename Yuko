@@ -60,7 +60,7 @@ if irc.connected?
     end
 
     if message.command == 'PING'
-      irc.pong command.params[0]
+      irc.pong message.params[0]
     end
 
     if message.command == 'PRIVMSG'
