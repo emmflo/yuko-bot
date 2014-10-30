@@ -80,7 +80,7 @@ def handle_privmsg(irc, message)
   urls    = message.trailing.scan /https?:\/\/\S+/
 
   handle_privmsg_request(irc, message, request) if request
-  handle_privmsg_urls(irc, message, request)    if urls.any?
+  handle_privmsg_urls(irc, message, urls)       if urls.any?
 end
 
 def handle_privmsg_request(irc, message, request)
@@ -105,8 +105,8 @@ def handle_privmsg_request(irc, message, request)
     end
   end
 
-  if request[:name] == 'titof'
-    irc.privmsg message.channel, "Nyaa~ onii-chan yameteeee... Touche pas mon ~/vendor gyaaaaaaah~!"
+  if request[:name] == 'titof' || request[:name] == '(21)'
+    irc.privmsg message.channel, "http://nyu.moe/loliwaytolive.gif"
   end
 
   if request[:name] == 'holo' || request[:name] == "shingekinoslg"
@@ -118,7 +118,7 @@ def handle_privmsg_request(irc, message, request)
   end
 end
 
-def handle_privmsg_urls(irc, message, request)
+def handle_privmsg_urls(irc, message, urls)
   urls.take(3).each do |url|
     begin
       object = LinkThumbnailer.generate url
