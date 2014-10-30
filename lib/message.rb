@@ -37,7 +37,19 @@ class Message
   end
 
   def channel
-    @command == 'PRIVMSG' ? @params[0] : nil
+    is_privmsg? ? @params[0] : nil
+  end
+
+  def is_ping?
+    @command == 'PING'
+  end
+
+  def is_end_of_motd?
+    @command == '376'
+  end
+
+  def is_privmsg?
+    @command == 'PRIVMSG'
   end
 
 end

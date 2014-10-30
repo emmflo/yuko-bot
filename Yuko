@@ -54,23 +54,26 @@ if irc.connected?
     message = Message.new(line)
     puts "Received: #{message.raw}"
 
-    if message.command == '376'
+    if message.is_end_of_motd?
       irc.join Yuko.conf.irc.channel
       irc.privmsg Yuko.conf.irc.channel, Yuko.conf.irc.greeting unless Yuko.conf.irc.greeting.nil?
     end
 
-    if message.command == 'PING'
+    if message.is_ping?
       irc.pong message.params[0]
     end
 
-    if message.command == 'PRIVMSG'
-      request = message.trailing.match /^!(?<name>[^[[:blank:]]]+)([[:blank:]]+(?<params>.*))?$/
-      urls    = message.trailing.scan /https?:\/\/[^[[:blank:]]]+/
+    if message.is_privmsg?
+      request = message.trailing.match /^!(?<name>\S+)(\s+(?<params>.*))?$/
+      urls    = message.trailing.scan /https?:\/\/\S+/
 
       if request
+        request = Hash[request.names.map(&:to_sym).zip(request.captures)]
+        request[:name].downcase!
+
         if (request[:name] == 'anime' || request[:name] == 'manga') && !request[:params].nil?
           search_type = request[:name]
-          results     = search_type == 'anime' ? MyAnimeList.search_anime(request[:params]) : MyAnimeList.search_manga(request[:params])
+          results     = MyAnimeList.send "search_#{search_type}".to_sym, request[:params]
 
           if results.any?
             irc.privmsg message.channel, "Résultats pour \"#{request[:params]}\""
@@ -86,12 +89,16 @@ if irc.connected?
           end
         end
 
-        if request[:name] == 'Titof'
+        if request[:name] == 'titof'
           irc.privmsg message.channel, "Nyaa~ onii-chan yameteeee... Touche pas mon ~/vendor gyaaaaaaah~!"
         end
 
-        if request[:name] == 'Holo' || request[:name] == "shingekinoslg"
+        if request[:name] == 'holo' || request[:name] == "shingekinoslg"
           irc.privmsg message.channel, "https://www.listenonrepeat.com/?v=8PN7kNWV06w"
+        end
+
+        if request[:name] == 'dudurenchon'
+          irc.privmsg message.channel, "http://image.noelshack.com/fichiers/2014/44/1414522583-dudurenchon.png"
         end
       end
 
