@@ -2,7 +2,7 @@
 # Oui le code est dégueux... Et alors ?!
 require 'irc-socket'
 require 'myanimelist'
-require 'entities'
+require 'htmlentities'
 require 'io/console'
 # require 'open-uri'
 require 'link_thumbnailer'
