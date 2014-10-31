@@ -2,7 +2,7 @@
 # Oui le code est dégueux... Et alors ?!
 require 'irc-socket'
 require 'myanimelist'
-require 'htmlentities'
+require 'entities'
 require 'io/console'
 # require 'open-uri'
 require 'link_thumbnailer'
@@ -50,8 +50,6 @@ def run!
     irc.nick Yuko.conf.irc.nickname
     irc.user 'Yuko', 0, '*', 'I am a bot.'
 
-    html = HTMLEntities.new
-
     while line = irc.read
       message = Message.new(line)
       puts "Received: #{message.raw}"
@@ -96,7 +94,7 @@ def handle_privmsg_request(irc, message, request)
 
       results.sort! {|entry1, entry2| entry2['score'].to_f <=> entry1['score'].to_f }
       results.take(5).each do |entry|
-        title = html.decode entry['title']
+        title = HTMLEntities.new.decode entry['title']
         url   = "http://myanimelist.net/#{search_type}/#{entry['id']}"
         irc.privmsg message.channel, "#{title} →\x032 #{url}"
       end
@@ -112,13 +110,17 @@ def handle_privmsg_request(irc, message, request)
   if request[:name] == 'holo' || request[:name] == "shingekinoslg"
     irc.privmsg message.channel, "https://www.listenonrepeat.com/?v=8PN7kNWV06w"
   end
-  
+
   if request[:name] == 'paraze' || request[:name] == "moe"
     irc.privmsg message.channel, "http://listenonrepeat.com/?v=wvvScxzxyLw"
   end
 
   if request[:name] == 'dudurenchon'
     irc.privmsg message.channel, "http://image.noelshack.com/fichiers/2014/44/1414522583-dudurenchon.png"
+  end
+
+  if request[:name] == 'praisememore'
+    irc.privmsg message.channel, "https://i.imgur.com/f3WLqUw.jpg"
   end
 end
 
