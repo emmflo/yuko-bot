@@ -99,12 +99,13 @@ def handle_privmsg_request(irc, message, request)
         irc.privmsg message.channel, "#{title} →\x032 #{url}"
       end
     else
-      irc.privmsg message.channel, "Aww~ la recherche pour \"#{request[:params]}\" n'a rien donné é_è"
+      search = HTMLEntities.new.decode request[:params]
+      irc.privmsg message.channel, "Aww~ la recherche pour \"#{search}\" n'a rien donné é_è"
     end
   end
 
   if request[:name] == 'titof' || request[:name] == '(21)'
-    irc.privmsg message.channel, "http://nyu.moe/loliwaytolive.gif"
+    irc.privmsg message.channel, "http://nyu.moe/loliwaytolive.html"
   end
 
   if request[:name] == 'holo' || request[:name] == "shingekinoslg"
@@ -128,7 +129,7 @@ def handle_privmsg_urls(irc, message, urls)
   urls.take(3).each do |url|
     begin
       object = LinkThumbnailer.generate url
-      irc.privmsg message.channel, object.title
+      irc.privmsg message.channel, object.title if object.title && object.title.size > 0
     rescue StandardError
     end
   end
