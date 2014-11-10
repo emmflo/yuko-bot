@@ -4,7 +4,6 @@ require 'irc-socket'
 require 'myanimelist'
 require 'htmlentities'
 require 'io/console'
-# require 'open-uri'
 require 'link_thumbnailer'
 
 $:.unshift File.dirname(__FILE__)
@@ -43,7 +42,7 @@ def init(_)
 end
 
 def run!
-  irc = IRCSocket.new(Yuko.conf.irc.server)
+  irc = IRCSocket.new(Yuko.conf.irc.server, Yuko.conf.irc.port, Yuko.conf.irc.ssl)
   irc.connect
 
   if irc.connected?
@@ -123,10 +122,6 @@ def handle_privmsg_request(irc, message, request)
   if request[:name] == 'praisememore'
     irc.privmsg message.channel, "https://i.imgur.com/f3WLqUw.jpg"
   end
-  
-  if request[:name] == 'internet'
-    irc.privmsg message.channel, "http://www.internetshouldbeillegal.com/"
-  end
 end
 
 def handle_privmsg_urls(irc, message, urls)
@@ -139,4 +134,4 @@ def handle_privmsg_urls(irc, message, urls)
   end
 end
 
-init Yuko and run!
+init Yuko and run! # yeah ruuuuuuuun!

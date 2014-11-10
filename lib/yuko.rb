@@ -23,11 +23,13 @@ module Yuko
 
     def check
       errors = []
-      errors << 'Invalid server   (irc)' unless @irc.server.is_a? String
-      errors << 'Invalid channel  (irc)' unless @irc.channel.is_a? String
-      errors << 'Invalid nickname (irc)' unless @irc.nickname.is_a? String
-      errors << 'Invalid username (mal)' unless @mal.username.is_a? String
-      errors << 'Invalid password (mal)' unless @mal.password.is_a? String
+      errors << 'Invalid server              (irc)' unless @irc.server.is_a? String
+      errors << 'Invalid port                (irc)' unless @irc.port.is_a?(String) || @irc.port.is_a?(Numeric)
+      errors << 'Invalid boolean, value: ssl (irc)' unless @irc.ssl.is_a?(TrueClass) || @irc.ssl.is_a?(FalseClass)
+      errors << 'Invalid channel             (irc)' unless @irc.channel.is_a? String
+      errors << 'Invalid nickname            (irc)' unless @irc.nickname.is_a? String
+      errors << 'Invalid username            (mal)' unless @mal.username.is_a? String
+      errors << 'Invalid password            (mal)' unless @mal.password.is_a? String
       raise ConfError, errors if errors.any?
     end
 
@@ -50,7 +52,7 @@ module Yuko
   end
 
   class IrcConf
-    attr_accessor :server, :channel, :nickname, :greeting
+    attr_accessor :server, :port, :ssl, :channel, :nickname, :greeting
   end
 
   def self.configure
