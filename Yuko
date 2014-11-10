@@ -123,6 +123,10 @@ def handle_privmsg_request(irc, message, request)
   if request[:name] == 'praisememore'
     irc.privmsg message.channel, "https://i.imgur.com/f3WLqUw.jpg"
   end
+  
+  if request[:name] == 'internet'
+    irc.privmsg message.channel, "http://www.internetshouldbeillegal.com/"
+  end
 end
 
 def handle_privmsg_urls(irc, message, urls)
