@@ -5,7 +5,7 @@ Yuko.configure do |config|
   config.irc.port     = 6667
   config.irc.ssl      = false
   config.irc.channel  = '#mangas'
-  config.irc.nickname = 'Yuko'
+  config.irc.nickname = 'Yuko3'
   config.irc.greeting = 'Yuko kuruyo~ https://youtu.be/cIkoZbvTfwc \o/'
 
   # MyAnimeList Account:
