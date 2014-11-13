@@ -114,6 +114,10 @@ def handle_privmsg_request(irc, message, request)
   if request[:name] == 'paraze' || request[:name] == "moe"
     irc.privmsg message.channel, "http://listenonrepeat.com/?v=wvvScxzxyLw"
   end
+  
+  if request[:name] == 'Elried' || request[:name] == "go"
+    irc.privmsg message.channel, "Oli!!! Vas jouer au Go! Maintenant"
+  end
 
   if request[:name] == 'dudurenchon'
     irc.privmsg message.channel, "http://image.noelshack.com/fichiers/2014/44/1414522583-dudurenchon.png"
