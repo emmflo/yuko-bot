@@ -14,7 +14,7 @@ module Yuko
   end
 
   class GlobalConf
-    attr_accessor :irc, :mal
+    attr_accessor :irc, :mal, :googleajax
 
     def initialize
       @irc = IrcConf.new

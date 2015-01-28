@@ -5,6 +5,7 @@ require 'myanimelist'
 require 'htmlentities'
 require 'io/console'
 require 'link_thumbnailer'
+require 'googleajax'
 
 $:.unshift File.dirname(__FILE__)
 require 'lib/yuko'
@@ -75,9 +76,13 @@ end
 def handle_privmsg(irc, message)
   request = message.trailing.match /^!(?<name>\S+)(\s+(?<params>.*))?$/
   urls    = message.trailing.scan /https?:\/\/\S+/
+  lmgtfy  = message.trailing.match /https?:\/\/lmgtfy\.com\/\S+?(?<query>\S*)[^#\s]*/
+  google  = message.trailing.match /https?:\/\/.*\.google\..*\/\S*?(search\?|)(?<query>\S*)/
 
   handle_privmsg_request(irc, message, request) if request
-  handle_privmsg_urls(irc, message, urls)       if urls.any?
+  handle_privmsg_urls(irc, message, urls)       if urls.any? && !lmgtfy && !google
+  handle_privmsg_lmgtfy(irc, message, lmgtfy)   if lmgtfy
+  handle_privmsg_google(irc, message, google)   if google
 end
 
 def handle_privmsg_request(irc, message, request)
@@ -101,6 +106,14 @@ def handle_privmsg_request(irc, message, request)
       search = HTMLEntities.new.decode request[:params]
       irc.privmsg message.channel, "Aww~ la recherche pour \"#{search}\" n'a rien donné é_è"
     end
+  end
+
+  if request[:name][0] == 'g' && !request[:params].nil?
+    num = request[:name][-1].to_i
+    num = 3 if num <= 0
+    type = "w"
+    type = request[:name][1] if ["w", "n", "i", "v"].include? request[:name][1]
+    google_search(irc, message, request[:params].split(), num, type)
   end
 
   if request[:name] == 'titof' || request[:name] == '(21)'
@@ -138,6 +151,87 @@ def handle_privmsg_urls(irc, message, urls)
       object = LinkThumbnailer.generate url
       irc.privmsg message.channel, object.title[0...512] if object.title && object.title.size > 0
     rescue StandardError
+    end
+  end
+end
+
+def handle_privmsg_lmgtfy(irc, message, lmgtfy)
+  lmgtfy = Hash[lmgtfy.names.map(&:to_sym).zip(lmgtfy.captures)]
+  num = 3
+  query = ""
+  lmgtfy[:query].split(/&|#/).each do |param|
+    param = param.split("=")
+    query = param[1] if param[0] == "q"
+    l = param[1].to_i if param[0] == "l"
+  end
+  params = query.split('+')
+  google_search(irc, message, params, num)
+end
+
+def handle_privmsg_google(irc, message, google)
+  google = Hash[google.names.map(&:to_sym).zip(google.captures)]
+  num = 3
+  query = ""
+  type = "w"
+  first_split = google[:query].split("#")
+  first_split[0].split("&").each do |param|
+    puts param
+    param = param.split("=")
+    if param[0] == "q"
+      query = param[1]
+    elsif (param[0] == "tbm" && param[1] == "isch")
+      type = "i" 
+    elsif (param[0] == "tbm" && param[1] == "vid")
+      type = "v" 
+    elsif (param[0] == "tbm" && param[1] == "nws")
+      type = "n" 
+    end
+  end
+  if first_split.size()>=2
+    first_split[1].split("&").each do |param|
+      puts param
+      param = param.split("=")
+      if param[0] == "q"
+        query = param[1] 
+        type = "w"
+      elsif (param[0] == "tbm" && param[1] == "isch")
+        type = "i" 
+      elsif (param[0] == "tbm" && param[1] == "vid")
+        type = "v" 
+      elsif (param[0] == "tbm" && param[1] == "nws")
+        type = "n" 
+      end
+    end
+  end
+  params = query.split('%20')
+  google_search(irc, message, params, 3, type)
+end
+
+def google_search(irc, message, params, num=3, type="w")
+  GoogleAjax.referer = 'mangas_at_smoothirc.net'
+  human_params = params.join(" ")
+  if type == "w"
+    irc.privmsg message.channel, "Nyaa~ Yuko cherche \"#{human_params}\" sur google pour vous:"
+    results = GoogleAjax::Search.web(params)[:results].take(num)
+  elsif type == "i"
+    irc.privmsg message.channel, "Nyaa~ Yuko cherche \"#{human_params}\" sur google images pour vous:"
+    results = GoogleAjax::Search.images(params)[:results].take(num)
+  elsif type == "n"
+    irc.privmsg message.channel, "Nyaa~ Yuko cherche \"#{human_params}\" sur google actualités pour vous:"
+    results = GoogleAjax::Search.news(params)[:results].take(num)
+  elsif type == "v"
+    irc.privmsg message.channel, "Nyaa~ Yuko cherche \"#{human_params}\" sur google video pour vous:"
+    results = GoogleAjax::Search.video(params)[:results].take(num)
+  end
+ 
+  results.each do |entry|
+    url   = entry[:unescaped_url]
+    url   = entry[:url] if type == "v"
+    title = entry[:title_no_formatting]
+    if title.size > 0
+      irc.privmsg message.channel, "#{title} →\x032 #{url}"
+    else
+      irc.privmsg message.channel, "\x032 #{url}"
     end
   end
 end

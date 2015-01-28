@@ -10,6 +10,8 @@ GEM
     addressable (2.3.6)
     fastimage (1.6.4)
       addressable (~> 2.3, >= 2.3.5)
+    googleajax (1.0.1)
+      json (>= 1.0.0)
     htmlentities (4.3.2)
     i18n (0.6.11)
     irc-socket (1.0.1)
@@ -49,6 +51,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
+  googleajax (~> 1.0.1)
   htmlentities (~> 4.3.2)
   irc-socket (~> 1.0.1)
   link_thumbnailer (~> 2.3.1)
